@@ -1,0 +1,34 @@
+﻿@{
+    ViewData["Title"] = "Home Page";
+}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+
+<div class="text-center">
+    <h1 class="display-4">Welcome</h1>
+        <p><a href="#" id="connect-button">Connect as datetime</a>.</p>
+        <p><a href="#" id="create-room-button">Create room</a>.</p>
+    <div id="messages"></div>
+</div>
+
+<script>
+    const div = document.getElementById('messages');
+    const connection = new signalR.HubConnectionBuilder()
+        .withUrl("/Gamehub")
+        .build();
+    
+    connection.on("message", (id, message) => {
+        div.innerHTML += `<p>${id}: ${message}</p>`;
+    });
+    
+    connection.start()
+    
+    document.getElementById('connect-button').addEventListener("click", async () => {
+        result = await connection.invoke("TryToConnect", "@DateTime.Now.ToString("HHmmss")");
+        div.innerHTML += `<p>${result}</p>`;
+    })
+    
+    document.getElementById('create-room-button').addEventListener("click", async () => {
+        room = await connection.invoke("CreateOwnRoom");
+        div.innerHTML += `<p>you're now in ${room.id} room</p>`;
+    })
+</script>
