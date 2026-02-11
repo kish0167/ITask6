@@ -31,7 +31,7 @@ public class GameHub : Hub
 
     public async Task<Room?> CreateOwnRoom()
     {
-        return _matchMakingService.CreateRoomAndJoin(Context.ConnectionId);
+        return _matchMakingService.CreateRoomAndJoin(Context.ConnectionId, this);
     }
 
     public async Task<Room?> JoinRoom(int roomId)

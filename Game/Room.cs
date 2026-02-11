@@ -1,8 +1,9 @@
 ﻿using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.SignalR;
 
 namespace ITask6.Game;
 
-public class Room(int capacity)
+public class Room(int capacity, Hub hub)
 {
     [JsonPropertyName("id")]
     public int Id { get; } = _nextId++;
@@ -15,18 +16,21 @@ public class Room(int capacity)
     
     [JsonPropertyName("isAvailable")]
     public bool IsAvailable => Players.Count < Capacity;
+
+    protected Hub Hub = hub;
+    
     private static int _nextId = 0;
 
     public void AddPlayer(string id, string nickname)
     {
         Players[id] = nickname;
-        OnPlayerAdded();
+        OnPlayerAdded(id);
     }
     
     public void RemovePlayer(string id)
     {
         Players.Remove(id);
-        OnPlayerRemoved();
+        OnPlayerRemoved(id);
     }
 
     public void StartGame()
@@ -49,8 +53,8 @@ public class Room(int capacity)
     {
         return true;
     }
-    
-    protected virtual void OnPlayerAdded(){}
-    protected virtual void OnPlayerRemoved(){}
+    public virtual void PlayerAction(string id, string type, string action){}
+    protected virtual void OnPlayerAdded(string id){}
+    protected virtual void OnPlayerRemoved(string id){}
     protected virtual void OnGameStarted(){}
 }

@@ -1,4 +1,5 @@
 ﻿using ITask6.Game.TicTacToe;
+using Microsoft.AspNetCore.SignalR;
 
 namespace ITask6.Game.Services;
 
@@ -46,10 +47,10 @@ public class MatchMakingService : IMatchMakingService
         RemoveUserFromRoom(id);
     }
 
-    public Room? CreateRoomAndJoin(string id)
+    public Room? CreateRoomAndJoin(string id, Hub hub)
     {
         if (!PlayerIsAbleToJoinRoom(id)) return null;
-        return JoinRoom(id, CreateRoom());
+        return JoinRoom(id, CreateRoom(hub));
     }
 
     private bool PlayerHasNickname(string id)
@@ -57,9 +58,10 @@ public class MatchMakingService : IMatchMakingService
         return _players.ContainsKey(id);
     }
     
-    private int CreateRoom()
+    private int CreateRoom(Hub hub)
     {
-        Room room = new TicTacToeRoom();
+        Room room = new Room(2, hub);
+        //Room room = new TicTacToeRoom(hub);
         _rooms.Add(room);
         return room.Id;
     }

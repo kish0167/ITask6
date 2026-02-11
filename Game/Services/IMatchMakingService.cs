@@ -1,10 +1,12 @@
-﻿namespace ITask6.Game.Services;
+﻿using Microsoft.AspNetCore.SignalR;
+
+namespace ITask6.Game.Services;
 
 public interface IMatchMakingService
 {
     public bool TryToAddPlayer(string id, string nickname);
     public void RemovePlayer(string id);
-    public Room? CreateRoomAndJoin(string id);
+    public Room? CreateRoomAndJoin(string id, Hub hub);
     public List<Room> GetRooms();
     public Room? JoinRoom(string id, int roomId);
     public void LeaveRoom(string id);
