@@ -20,11 +20,19 @@ public class Room(int capacity)
     public void AddPlayer(string id, string nickname)
     {
         Players[id] = nickname;
+        OnPlayerAdded();
     }
     
     public void RemovePlayer(string id)
     {
         Players.Remove(id);
+        OnPlayerRemoved();
+    }
+
+    public void StartGame()
+    {
+        if (!CanStartGame()) return;
+        OnGameStarted();
     }
 
     public bool ContainsPlayer(string id)
@@ -36,4 +44,13 @@ public class Room(int capacity)
     {
         return Players.Count == 0;
     }
+    
+    public virtual bool CanStartGame()
+    {
+        return true;
+    }
+    
+    protected virtual void OnPlayerAdded(){}
+    protected virtual void OnPlayerRemoved(){}
+    protected virtual void OnGameStarted(){}
 }
