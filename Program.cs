@@ -5,8 +5,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddSignalR();
-//builder.Services.AddSingleton<IMatchMakingService, MatchMakingService>();
 builder.Services.AddSingleton<MatchMakingService>();
+builder.Services.AddHostedService(provider => provider.GetRequiredService<MatchMakingService>());
 
 var app = builder.Build();
 if (!app.Environment.IsDevelopment())

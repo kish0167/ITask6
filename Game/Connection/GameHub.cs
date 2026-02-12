@@ -5,7 +5,7 @@ namespace ITask6.Game.Connection;
 
 public class GameHub : Hub
 {
-    private MatchMakingService _matchMakingService;
+    private readonly MatchMakingService _matchMakingService;
     private readonly IHubContext<GameHub> _hubContext;
 
     public GameHub(MatchMakingService matchMakingService, IHubContext<GameHub> hubContext)

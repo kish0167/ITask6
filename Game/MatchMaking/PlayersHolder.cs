@@ -1,4 +1,6 @@
-﻿namespace ITask6.Game.MatchMaking;
+﻿using System.Collections;
+
+namespace ITask6.Game.MatchMaking;
 
 public class PlayersHolder
 {
@@ -22,5 +24,10 @@ public class PlayersHolder
     public string GetPlayerName(string id)
     {
         return _players.GetValueOrDefault(id, "noname");
+    }
+
+    public IEnumerable<string> GetFree(RoomsHolder roomsHolder)
+    {
+        return _players.Keys.Where(p => !roomsHolder.HasPlayerInRoom(p));
     }
 }

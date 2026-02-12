@@ -5,6 +5,8 @@ public class RoomsHolder
     private readonly List<Room> _rooms = new();
     public List<Room> Rooms  => _rooms;
 
+    public event Action? OnAnyChange; 
+
     public bool HasRoomWithName(string roomName)
     {
         return _rooms.Select(r => r.Name == roomName).Any();
@@ -15,6 +17,8 @@ public class RoomsHolder
         foreach (Room room in _rooms)
         {
             if (room.ContainsPlayer(id)) await room.RemovePlayer(id);
+            OnAnyChange?.Invoke();
+            return;
         }
     }
 
@@ -25,6 +29,7 @@ public class RoomsHolder
             if (room.Id == roomId)
             {
                 await room.AddPlayer(id, name);
+                OnAnyChange?.Invoke();
                 return room;
             }
         }
@@ -45,6 +50,7 @@ public class RoomsHolder
     public void DeleteEmptyRooms()
     {
         _rooms.RemoveAll(r => r.IsEmpty());
+        OnAnyChange?.Invoke();
     }
 
     public bool RoomExists(string name)
@@ -55,9 +61,10 @@ public class RoomsHolder
     public void Add(Room room)
     {
         _rooms.Add(room);
+        OnAnyChange?.Invoke();
     }
 
-    public bool PlayerIsInRoom(string id)
+    public bool HasPlayerInRoom(string id)
     {
         return _rooms.Any(r => r.ContainsPlayer(id));
     }

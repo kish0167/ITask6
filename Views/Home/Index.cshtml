@@ -216,6 +216,10 @@
 
         // --- SignalR Event Handlers ---
         
+        connection.on("updateRooms", (rooms) => {
+            refreshRooms(rooms)
+        });
+        
         connection.on("gameState", (state) => {
             currentState = state;
             renderGame(state);
@@ -265,9 +269,9 @@
             }
         }
 
-        async function refreshRooms() {
+        async function refreshRooms(rooms) {
             try {
-                const rooms = await connection.invoke("GetRooms");
+                if (!rooms) rooms = await connection.invoke("GetRooms");
                 const list = document.getElementById('roomList');
                 list.innerHTML = '';
 

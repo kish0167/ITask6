@@ -4,12 +4,46 @@ using Microsoft.AspNetCore.SignalR;
 
 namespace ITask6.Game.MatchMaking;
 
-public class MatchMakingService //: IMatchMakingService
+public class MatchMakingService(IHubContext<GameHub> hubContext) : IHostedService
 {
     private readonly PlayersHolder _playersHolder = new();
     private readonly RoomsHolder _roomsHolder = new();
+    private readonly IHubContext<GameHub> _hubContext = hubContext;
+
     private const bool DestroyEmptyRooms = true;
+
+    public Task StartAsync(CancellationToken cancellationToken)
+    {
+        _roomsHolder.OnAnyChange += OnAnyRoomChangeCallback;
+        return Task.CompletedTask;
+    }
+
+    public Task StopAsync(CancellationToken cancellationToken)
+    {
+        _roomsHolder.OnAnyChange -= OnAnyRoomChangeCallback;
+        return Task.CompletedTask;
+    }
     
+    private void OnAnyRoomChangeCallback()
+    {
+        _ = SendRoomsToFreePlayers();
+    }
+
+    private async Task SendRoomsToFreePlayers()
+    {
+        try
+        {
+            foreach (string id in _playersHolder.GetFree(_roomsHolder))
+            {
+                await _hubContext.Clients.Client(id).SendAsync("updateRooms", _roomsHolder.Rooms);
+            }
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+        }
+    }
+
     public bool TryToAddPlayer(string id, string nickname)
     {
         if (!_playersHolder.CanAddWith(id, nickname)) return false;
@@ -62,7 +96,7 @@ public class MatchMakingService //: IMatchMakingService
     
     private bool PlayerIsInRoom(string id)
     {
-        return _roomsHolder.PlayerIsInRoom(id);
+        return _roomsHolder.HasPlayerInRoom(id);
     }
 
     public async Task RemovePlayerFromRoom(string id)
