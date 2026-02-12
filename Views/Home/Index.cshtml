@@ -5,8 +5,10 @@
 
 <div class="text-center">
     <h1 class="display-4">Welcome</h1>
-        <p><a href="#" id="connect-button">Connect as datetime</a>.</p>
-        <p><a href="#" id="create-room-button">Create room</a>.</p>
+    <p><a href="#" id="connect-button">Connect as datetime</a>.</p>
+    <p><a href="#" id="create-room-button">Create room</a>.</p>
+    <p><a href="#" id="join-room-button">Connect to room</a>.</p>
+    <p><a href="#" id="start-game">Start game</a>.</p>
     <div id="messages"></div>
 </div>
 
@@ -16,19 +18,80 @@
         .withUrl("/Gamehub")
         .build();
     
-    connection.on("message", (id, message) => {
-        div.innerHTML += `<p>${id}: ${message}</p>`;
+    // Single handler for ALL game updates
+    connection.on("gameState", (state) => {
+        renderGame(state);
     });
     
-    connection.start()
+    connection.on("message", (msg) => {
+        div.innerHTML += `<p>${msg}</p>`;
+    });
     
-    document.getElementById('connect-button').addEventListener("click", async () => {
-        result = await connection.invoke("TryToConnect", "@DateTime.Now.ToString("HHmmss")");
-        div.innerHTML += `<p>${result}</p>`;
-    })
+    function renderGame(state) {
+        // Clear and rebuild the board
+        let html = `<div class="game-info">`;
+        html += `<p>Phase: ${state.phase}</p>`;
+        html += `<p>You are: ${state.yourSide || 'waiting...'}</p>`;
+        html += `<p>Opponent: ${state.opponentName || 'waiting...'}</p>`;
+        
+        if (state.isYourTurn) {
+            html += `<p><strong>YOUR TURN!</strong></p>`;
+        } else if (state.currentTurnId) {
+            html += `<p>Waiting for opponent...</p>`;
+        }
+        
+        if (state.phase === 'finished') {
+            if (state.isDraw) {
+                html += `<p><strong>DRAW!</strong></p>`;
+            } else {
+                html += `<p><strong>Winner: ${state.winnerName}</strong></p>`;
+            }
+        }
+        html += `</div>`;
+        
+        // Render 3x3 grid
+        html += `<div class="board">`;
+        for (let r = 0; r < 3; r++) {
+            html += `<div class="row">`;
+            for (let c = 0; c < 3; c++) {
+                const cell = state.board[r][c];
+                const symbol = cell === 0 ? '' : (cell === 1 ? 'X' : 'O');
+                const clickable = state.isYourTurn && cell === 0 ? 'clickable' : '';
+                const moveIndex = r * 3 + c;
+                html += `<div class="cell ${clickable}" data-move="${moveIndex}">${symbol}</div>`;
+            }
+            html += `</div>`;
+        }
+        html += `</div>`;
+        
+        div.innerHTML = html;
+        
+        document.querySelectorAll('.cell.clickable').forEach(cell => {
+            cell.onclick = () => {
+                const move = cell.getAttribute('data-move');
+                connection.invoke("PlayerAction", "ticTacToeMove", move);
+            };
+        });
+    }
+   
+    connection.start();
     
-    document.getElementById('create-room-button').addEventListener("click", async () => {
-        room = await connection.invoke("CreateOwnRoom");
-        div.innerHTML += `<p>you're now in ${room.id} room</p>`;
-    })
+    document.getElementById('connect-button').addEventListener('click', async () => {
+        result = await connection.invoke('TryToConnect', Date.now().toString());
+        div.innerHTML += `<p>you are registered: ${result}</p>`;
+    });
+    
+    document.getElementById('create-room-button').addEventListener('click', async () => {
+        room = await connection.invoke('CreateOwnRoom');
+        div.innerHTML += `<p>you now in room #${room.id}</p>`;
+    });
+    
+    document.getElementById('join-room-button').addEventListener('click', async () => {
+        room = await connection.invoke('JoinRoom', 0);
+        div.innerHTML += `<p>you now in room #${room.id}</p>`;
+    });
+    
+    document.getElementById('start-game').addEventListener('click', async () => {
+        await connection.invoke('GameAction', "ticTacToeStart", "empty");
+    });
 </script>

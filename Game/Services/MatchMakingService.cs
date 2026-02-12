@@ -1,4 +1,5 @@
-﻿using ITask6.Game.TicTacToe;
+﻿using ITask6.Game.Connection;
+using ITask6.Game.TicTacToe;
 using Microsoft.AspNetCore.SignalR;
 
 namespace ITask6.Game.Services;
@@ -11,18 +12,15 @@ public class MatchMakingService : IMatchMakingService
     
     public bool TryToAddPlayer(string id, string nickname)
     {
-        if (!_players.ContainsKey(id) && !_players.ContainsValue(nickname))
-        {
-            _players[id] = nickname;
-            return true;
-        }
-        return false;
+        if (_players.ContainsKey(id) || _players.ContainsValue(nickname)) return false;
+        _players[id] = nickname;
+        return true;
     }
 
-    public void RemovePlayer(string id)
+    public async Task RemovePlayer(string id)
     {
         _players.Remove(id);
-        RemoveUserFromRoom(id);
+        await RemovePlayerFromRoom(id);
     }
 
     public List<Room> GetRooms()
@@ -30,27 +28,32 @@ public class MatchMakingService : IMatchMakingService
         return _rooms;
     }
 
-    public Room? JoinRoom(string id, int roomId)
+    public async Task<Room?> JoinRoom(string id, int roomId)
     {
-        if (!PlayerHasNickname(id) || PlayerIsInRoom(id)) return null;
+        if (!PlayerIsAbleToJoinRoom(id)) return null;
         foreach (Room room in _rooms)
         {
             if (room.Id != roomId || !room.IsAvailable) continue;
-            room.AddPlayer(id, _players[id]);
+            await room.AddPlayer(id, _players[id]);
             return room;
         }
         return null;
     }
-
-    public void LeaveRoom(string id)
+    
+    public async Task PlayerAction(string id, string type, string data)
     {
-        RemoveUserFromRoom(id);
+        foreach (Room room in _rooms)
+        {
+            if (!room.ContainsPlayer(id)) continue;
+            await room.PlayerAction(id, type, data);
+            return;
+        }
     }
 
-    public Room? CreateRoomAndJoin(string id, Hub hub)
+    public async Task<Room?> CreateRoomAndJoin(string id, IHubContext<GameHub> hubContext)
     {
         if (!PlayerIsAbleToJoinRoom(id)) return null;
-        return JoinRoom(id, CreateRoom(hub));
+        return await JoinRoom(id, CreateRoom(hubContext));
     }
 
     private bool PlayerHasNickname(string id)
@@ -58,10 +61,9 @@ public class MatchMakingService : IMatchMakingService
         return _players.ContainsKey(id);
     }
     
-    private int CreateRoom(Hub hub)
+    private int CreateRoom(IHubContext<GameHub> hubContext)
     {
-        Room room = new Room(2, hub);
-        //Room room = new TicTacToeRoom(hub);
+        Room room = new TicTacToeRoom(hubContext);
         _rooms.Add(room);
         return room.Id;
     }
@@ -75,13 +77,13 @@ public class MatchMakingService : IMatchMakingService
         return false;
     }
 
-    private void RemoveUserFromRoom(string id)
+    public async Task RemovePlayerFromRoom(string id)
     {
         foreach (Room room in _rooms)
         {
             if (room.ContainsPlayer(id))
             {
-                room.RemovePlayer(id);
+                await room.RemovePlayer(id);
             }
         }
         if (DestroyEmptyRooms) DeleteEmptyRooms();

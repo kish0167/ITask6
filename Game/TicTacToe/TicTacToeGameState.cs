@@ -4,6 +4,5 @@ public enum TicTacToeGameState
 {
     Waiting,
     XTurn,
-    OTurn,
-    End
+    OTurn
 }

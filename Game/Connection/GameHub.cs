@@ -6,10 +6,12 @@ namespace ITask6.Game.Connection;
 public class GameHub : Hub
 {
     private IMatchMakingService _matchMakingService;
+    private readonly IHubContext<GameHub> _hubContext;
 
-    public GameHub(IMatchMakingService matchMakingService)
+    public GameHub(IMatchMakingService matchMakingService, IHubContext<GameHub> hubContext)
     {
         _matchMakingService = matchMakingService;
+        _hubContext = hubContext;
     }
 
     public async Task<bool> TryToConnect(string nickname)
@@ -20,7 +22,7 @@ public class GameHub : Hub
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
-        _matchMakingService.RemovePlayer(Context.ConnectionId);
+        await _matchMakingService.RemovePlayer(Context.ConnectionId);
         await base.OnDisconnectedAsync(exception);
     }
 
@@ -31,17 +33,22 @@ public class GameHub : Hub
 
     public async Task<Room?> CreateOwnRoom()
     {
-        return _matchMakingService.CreateRoomAndJoin(Context.ConnectionId, this);
+        return await _matchMakingService.CreateRoomAndJoin(Context.ConnectionId, _hubContext);
     }
 
     public async Task<Room?> JoinRoom(int roomId)
     {
-        return _matchMakingService.JoinRoom(Context.ConnectionId, roomId);
+        return await _matchMakingService.JoinRoom(Context.ConnectionId, roomId);
     }
 
     public async Task LeaveRoom()
     {
-        _matchMakingService.LeaveRoom(Context.ConnectionId);
+        await _matchMakingService.RemovePlayerFromRoom(Context.ConnectionId);
+    }
+
+    public async Task GameAction(string type, string data)
+    {
+        await _matchMakingService.PlayerAction(Context.ConnectionId, type, data);
     }
 
     public async Task SendMessage(string message)

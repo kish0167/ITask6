@@ -1,9 +1,10 @@
 ﻿using System.Text.Json.Serialization;
+using ITask6.Game.Connection;
 using Microsoft.AspNetCore.SignalR;
 
 namespace ITask6.Game;
 
-public class Room(int capacity, Hub hub)
+public class Room(int capacity, IHubContext<GameHub> hubContext)
 {
     [JsonPropertyName("id")]
     public int Id { get; } = _nextId++;
@@ -17,26 +18,38 @@ public class Room(int capacity, Hub hub)
     [JsonPropertyName("isAvailable")]
     public bool IsAvailable => Players.Count < Capacity;
 
-    protected Hub Hub = hub;
+    private readonly IHubContext<GameHub> _hubContext = hubContext;
     
     private static int _nextId = 0;
 
-    public void AddPlayer(string id, string nickname)
+    public async Task AddPlayer(string id, string nickname)
     {
         Players[id] = nickname;
-        OnPlayerAdded(id);
+        await OnPlayerAdded(id);
     }
     
-    public void RemovePlayer(string id)
+    public async Task RemovePlayer(string id)
     {
         Players.Remove(id);
-        OnPlayerRemoved(id);
+        await OnPlayerRemoved(id);
     }
-
-    public void StartGame()
+    
+    public async Task PlayerAction(string id, string type, string action)
     {
-        if (!CanStartGame()) return;
-        OnGameStarted();
+        await OnPlayerAction(id, type, action);
+    }
+    
+    protected  async Task SendDataToAllPlayers(string method, object data)
+    {
+        foreach (string id in Players.Keys.ToArray())
+        {
+            await SendDataToPlayer(id, method, data);
+        }
+    }
+    
+    protected  async Task SendDataToPlayer(string id, string method, object data)
+    {
+        await _hubContext.Clients.User(id).SendAsync(method, data);
     }
 
     public bool ContainsPlayer(string id)
@@ -48,13 +61,17 @@ public class Room(int capacity, Hub hub)
     {
         return Players.Count == 0;
     }
-    
-    public virtual bool CanStartGame()
+
+    protected virtual Task OnPlayerAction(string id, string type, string action)
     {
-        return true;
+        return Task.CompletedTask;
     }
-    public virtual void PlayerAction(string id, string type, string action){}
-    protected virtual void OnPlayerAdded(string id){}
-    protected virtual void OnPlayerRemoved(string id){}
-    protected virtual void OnGameStarted(){}
+    protected virtual Task OnPlayerAdded(string id)
+    {
+        return Task.CompletedTask;
+    }
+    protected virtual Task OnPlayerRemoved(string id)
+    {
+        return Task.CompletedTask;
+    }
 }

@@ -1,101 +1,115 @@
-﻿using System.Security.Cryptography;
+﻿using ITask6.Game.Connection;
 using Microsoft.AspNetCore.SignalR;
 
 namespace ITask6.Game.TicTacToe;
 
-public class TicTacToeRoom(Hub hub) : Room(2, hub)
+public class TicTacToeRoom(IHubContext<GameHub> hubContext) : Room(2, hubContext)
 {
-    private readonly Dictionary<TicTacToeGameState, string> _playerSides = new();
-    
-    private TicTacToeGameState _state = TicTacToeGameState.Waiting;
-    private readonly List<List<int>> _gameField =
-    [
-        [0, 0, 0],
-        [0, 0, 0],
-        [0, 0, 0]
-    ];
-    
-    private readonly IReadOnlyDictionary<TicTacToeGameState, int> _moveRepresentation =
-        new Dictionary<TicTacToeGameState, int>
+    private readonly TicTacToeGameBoard _board = new(3);
+    private readonly TicTacToeStateManager _stateManager = new();
+    private readonly TicTacToePlayerManager _playerManager = new();
+    private readonly TicTacToeMoveValidator _moveValidator = new();
+    protected override async Task OnPlayerAction(string id, string type, string action)
+    {
+        await base.OnPlayerAction(id, type, action);
+        switch (type)
         {
-            { TicTacToeGameState.XTurn , 1},
-            { TicTacToeGameState.OTurn , 2}
-        };
-
-    private const int Dimension = 3;
+            case "ticTacToeStart":
+                await HandleStartGame(id);
+                break;
+            case "ticTacToeMove":
+                await HandleMakeMove(id, action);
+                break;
+        }
+    }
     
-    protected override void OnGameStarted()
+    private async Task HandleStartGame(string id)
     {
-        DecidePlayerSides();
+        if (!CanStart()) return;
+        _playerManager.AssignSides(Players.Keys.ElementAt(0), Players.Keys.ElementAt(1));
+        _stateManager.StartGame();
+        await BroadcastState();
     }
 
-    public override bool CanStartGame()
+    private async Task HandleMakeMove(string id, string action)
     {
-        return Players.Count == 2;
+        if (!_moveValidator.IsValidMove(_board, id, action, _stateManager, _playerManager, out int row, out int col))
+            return;
+        _board.PlaceMove(row, col, _stateManager.GetCurrentPlayerValue());
+        
+        await HandleAfterMove();
     }
 
-    public override void PlayerAction(string id, string type, string action)
+    private async Task HandleAfterMove()
     {
-        if (!IsValidAction(type)) return;
-        if (!IsValidMove(id, action, out int move)) return;
-        MakeMove(move);
-        UpdateGameState();
-    }
-
-    private void DecidePlayerSides()
-    {
-        string[] players = Players.Keys.ToArray();
-        if (RandomNumberGenerator.GetInt32(2) == 0)
+        if (_board.WinCondition())
         {
-            _playerSides[TicTacToeGameState.XTurn] = players[0];
-            _playerSides[TicTacToeGameState.OTurn] = players[1];
+            await EndGame(false);
+        }
+        else if (_board.IsFull())
+        {
+            await EndGame(true);
         }
         else
         {
-            _playerSides[TicTacToeGameState.XTurn] = players[1];
-            _playerSides[TicTacToeGameState.OTurn] = players[0];
+            _stateManager.SwitchTurn();
+            await BroadcastState();
         }
     }
-    
-    private void MakeMove(int move)
-    {
-        _gameField[move / Dimension][move % Dimension] = _moveRepresentation[_state];
-    }
-    
-    private void UpdateGameState()
-    {
-        if (WinCondition()) return;
-    }
 
-    private bool IsValidAction(string type)
+    private async Task BroadcastState()
     {
-        return string.Equals(type, "ticTacToeMove");
-    }
-    
-    private bool IsValidMove(string id, string action, out int outMove)
-    {
-        if (!int.TryParse(action, out int move) || move < 0 || move >= Dimension * Dimension)
+        foreach (string id in Players.Keys)
         {
-            outMove = -1;
-            return false;
+            TicTacToeGameStateDto state = BuildDtoForPlayer(id);
+            await SendDataToPlayer(id, "gameState", state);
+            await SendDataToPlayer(id, "message", "fuck you");
         }
-        outMove = move;
-        return _gameField[move/3][move%3] == 0 && IsUserMove(id);
-    }
-
-    private bool IsUserMove(string id)
-    {
-        return _playerSides.ContainsKey(_state) && _playerSides[_state] == id;
     }
     
-    private bool WinCondition()
+    private async Task BroadcastEndState(bool draw)
     {
-        for (int i = 0; i < Dimension; i++)
+        string? winnerId = draw ? null : _playerManager.GetPlayerId(_stateManager.CurrentState);
+        string? winnerName = draw ? null : Players[_playerManager.GetWinnerId(_stateManager.CurrentState)];
+        
+        foreach (string id in Players.Keys)
         {
-            
+            TicTacToeGameStateDto state = BuildDtoForPlayer(id);
+            state.WinnerId = winnerId;
+            state.WinnerName = winnerName;
+            state.IsDraw = draw;
+            state.Phase = "finished";
+            await SendDataToPlayer(id, "gameState", state);
         }
-
-        return false;
     }
     
+    private TicTacToeGameStateDto BuildDtoForPlayer(string id)
+    {
+        string? opponentId = Players.Keys.FirstOrDefault(pid => pid != id);
+        TicTacToeGameStateDto state = new()
+        {
+            Board = _board.Grid,
+            Phase = _stateManager.CurrentState.ToString(),
+            CurrentTurnName = _stateManager.CurrentState is TicTacToeGameState.XTurn or TicTacToeGameState.OTurn 
+                ?  Players[_playerManager.GetPlayerId(_stateManager.CurrentState)]
+                : null,
+            YourSide = _playerManager.GetPlayerSide(id),
+            OpponentId = opponentId,
+            OpponentName = opponentId != null ? Players[opponentId] : null,
+            IsYourTurn = _playerManager.IsCurrentPlayerTurn(id, _stateManager.CurrentState)
+        };
+        return state;
+    }
+
+    private async Task EndGame(bool draw)
+    {
+        await BroadcastEndState(draw);
+        _stateManager.EndGame();
+        _board.Reset();
+    }
+
+    private bool CanStart()
+    {
+        return Players.Count == 2 && _stateManager.IsWaiting;
+    }
 }
