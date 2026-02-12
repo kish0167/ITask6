@@ -1,97 +1,518 @@
 ﻿@{
-    ViewData["Title"] = "Home Page";
+    ViewData["Title"] = "Tic Tac Toe Arena";
 }
-<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p><a href="#" id="connect-button">Connect as datetime</a>.</p>
-    <p><a href="#" id="create-room-button">Create room</a>.</p>
-    <p><a href="#" id="join-room-button">Connect to room</a>.</p>
-    <p><a href="#" id="start-game">Start game</a>.</p>
-    <div id="messages"></div>
+<div class="container py-4">
+    <!-- Header -->
+    <div class="text-center mb-4">
+        <h1 class="display-5 fw-bold text-primary">Tic Tac Toe Arena</h1>
+        <p class="text-muted">Real-time multiplayer battles</p>
+    </div>
+
+    <!-- Connection Status -->
+    <div id="connectionStatus" class="alert alert-info text-center">
+        <span class="spinner-border spinner-border-sm me-2"></span> Connecting to server...
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div class="toast-container position-fixed top-0 end-0 p-3">
+        <div id="liveToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header">
+                <strong class="me-auto text-primary">System</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body" id="toastMessage">
+                Hello, world! This is a toast message.
+            </div>
+        </div>
+    </div>
+
+    <!-- AUTHENTICATION / LOGIN VIEW -->
+    <div id="authView" class="row justify-content-center d-none">
+        <div class="col-md-6 col-lg-4">
+            <div class="card shadow-lg border-0">
+                <div class="card-body p-5">
+                    <h3 class="card-title text-center mb-4">Enter Battlefield</h3>
+                    <div class="form-floating mb-3">
+                        <input type="text" class="form-control" id="nicknameInput" placeholder="PlayerOne" maxlength="15">
+                        <label for="nicknameInput">Your Nickname</label>
+                    </div>
+                    <button class="btn btn-primary w-100 btn-lg" onclick="connect()">
+                        <i class="bi bi-controller me-2"></i>Connect
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- LOBBY VIEW -->
+    <div id="lobbyView" class="d-none">
+        <div class="row g-4">
+            <!-- Room List -->
+            <div class="col-md-8">
+                <div class="card shadow border-0 h-100">
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+                        <h5 class="mb-0"><i class="bi bi-door-open me-2"></i>Available Rooms</h5>
+                        <button class="btn btn-sm btn-outline-primary" onclick="refreshRooms()">
+                            <i class="bi bi-arrow-clockwise"></i> Refresh
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div id="roomList" class="list-group">
+                            <!-- Rooms injected here -->
+                            <div class="text-center text-muted py-5">No active rooms. Create one!</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="col-md-4">
+                <div class="card shadow border-0 bg-primary text-white">
+                    <div class="card-body text-center p-5">
+                        <h4 class="mb-3">Start New Game</h4>
+                        <p class="opacity-75 mb-4">Create a private room and wait for an opponent.</p>
+                        <button class="btn btn-light btn-lg w-100 text-primary fw-bold" onclick="createRoom()">
+                            <i class="bi bi-plus-circle me-2"></i>Create Room
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- GAME VIEW -->
+    <div id="gameView" class="d-none">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                
+                <!-- Game Header Info -->
+                <div class="d-flex justify-content-between align-items-center mb-4 bg-white p-3 rounded shadow-sm">
+                    <div class="d-flex align-items-center">
+                        <div class="bg-light rounded-circle p-2 me-2" style="width: 40px; height: 40px; display:flex; align-items:center; justify-content:center;">
+                            <span id="playerSymbol" class="fw-bold text-secondary">?</span>
+                        </div>
+                        <div>
+                            <div class="small text-muted">You</div>
+                            <div class="fw-bold" id="playerNameDisplay">Player</div>
+                        </div>
+                    </div>
+
+                    <div class="text-center">
+                        <div id="gameStatusBadge" class="badge bg-secondary mb-1">Waiting</div>
+                        <div class="small text-muted" id="turnIndicator">-</div>
+                    </div>
+
+                    <div class="d-flex align-items-center text-end">
+                        <div>
+                            <div class="small text-muted">Opponent</div>
+                            <div class="fw-bold" id="opponentNameDisplay">Waiting...</div>
+                        </div>
+                        <div class="bg-light rounded-circle p-2 ms-2" style="width: 40px; height: 40px; display:flex; align-items:center; justify-content:center;">
+                            <span id="opponentSymbol" class="fw-bold text-secondary">?</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- The Board -->
+                <div class="game-board-container position-relative">
+                    <div id="gameBoard" class="game-board">
+                        <!-- Cells generated by JS -->
+                    </div>
+                    
+                    <!-- Overlay for Game Over -->
+                    <div id="gameOverlay" class="game-overlay d-none">
+                        <div class="text-center">
+                            <h2 id="overlayTitle" class="display-4 fw-bold text-white mb-3">Winner!</h2>
+                            <button class="btn btn-light btn-lg rounded-pill px-5" onclick="leaveGame()">
+                                Back to Lobby
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Controls -->
+                <div class="mt-4 text-center">
+                    <button id="startBtn" class="btn btn-success btn-lg d-none me-2" onclick="startGame()">
+                        <i class="bi bi-play-fill me-2"></i>Start Game
+                    </button>
+                    <button class="btn btn-outline-danger" onclick="leaveGame()">
+                        <i class="bi bi-box-arrow-left me-2"></i>Leave Room
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
-<script>
-    const div = document.getElementById('messages');
-    const connection = new signalR.HubConnectionBuilder()
-        .withUrl("/Gamehub")
-        .build();
-    
-    // Single handler for ALL game updates
-    connection.on("gameState", (state) => {
-        renderGame(state);
-    });
-    
-    connection.on("message", (msg) => {
-        div.innerHTML += `<p>${msg}</p>`;
-    });
-    
-    function renderGame(state) {
-        // Clear and rebuild the board
-        let html = `<div class="game-info">`;
-        html += `<p>Phase: ${state.phase}</p>`;
-        html += `<p>You are: ${state.yourSide || 'waiting...'}</p>`;
-        html += `<p>Opponent: ${state.opponentName || 'waiting...'}</p>`;
-        
-        if (state.isYourTurn) {
-            html += `<p><strong>YOUR TURN!</strong></p>`;
-        } else if (state.currentTurnId) {
-            html += `<p>Waiting for opponent...</p>`;
-        }
-        
-        if (state.phase === 'finished') {
-            if (state.isDraw) {
-                html += `<p><strong>DRAW!</strong></p>`;
-            } else {
-                html += `<p><strong>Winner: ${state.winnerName}</strong></p>`;
-            }
-        }
-        html += `</div>`;
-        
-        // Render 3x3 grid
-        html += `<div class="board">`;
-        for (let r = 0; r < 3; r++) {
-            html += `<div class="row">`;
-            for (let c = 0; c < 3; c++) {
-                const cell = state.board[r][c];
-                const symbol = cell === 0 ? '' : (cell === 1 ? 'X' : 'O');
-                const clickable = state.isYourTurn && cell === 0 ? 'clickable' : '';
-                const moveIndex = r * 3 + c;
-                html += `<div class="cell ${clickable}" data-move="${moveIndex}">${symbol}</div>`;
-            }
-            html += `</div>`;
-        }
-        html += `</div>`;
-        
-        div.innerHTML = html;
-        
-        document.querySelectorAll('.cell.clickable').forEach(cell => {
-            cell.onclick = () => {
-                const move = cell.getAttribute('data-move');
-                connection.invoke("PlayerAction", "ticTacToeMove", move);
-            };
-        });
+<style>
+    :root {
+        --cell-size: 100px;
+        --mark-size: calc(var(--cell-size) * .7);
     }
-   
-    connection.start();
+
+    body {
+        background-color: #f8f9fa;
+        background-image: radial-gradient(#e9ecef 1px, transparent 1px);
+        background-size: 20px 20px;
+    }
+
+    .game-board {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+        background-color: #dee2e6;
+        padding: 10px;
+        border-radius: 1rem;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        max-width: 500px;
+        margin: 0 auto;
+        aspect-ratio: 1;
+    }
+
+    .cell {
+        background-color: white;
+        border-radius: 0.5rem;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 3rem;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        color: #495057;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .cell:hover:not(.taken) {
+        background-color: #e9ecef;
+        transform: scale(0.98);
+    }
+
+    .cell.taken {
+        cursor: default;
+    }
+
+    .cell.x {
+        color: #0d6efd; /* Bootstrap Primary */
+    }
+
+    .cell.o {
+        color: #dc3545; /* Bootstrap Danger */
+    }
+
+    /* Animations */
+    @@keyframes popIn {
+        0% { transform: scale(0); opacity: 0; }
+        80% { transform: scale(1.1); opacity: 1; }
+        100% { transform: scale(1); }
+    }
+
+    .cell.x::after, .cell.o::after {
+        content: attr(data-mark);
+        animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .game-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.7);
+        backdrop-filter: blur(4px);
+        border-radius: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10;
+    }
+
+    .turn-active {
+        box-shadow: 0 0 15px rgba(13, 202, 240, 0.5);
+        border: 2px solid #0dcaf0;
+    }
     
-    document.getElementById('connect-button').addEventListener('click', async () => {
-        result = await connection.invoke('TryToConnect', Date.now().toString());
-        div.innerHTML += `<p>you are registered: ${result}</p>`;
-    });
-    
-    document.getElementById('create-room-button').addEventListener('click', async () => {
-        room = await connection.invoke('CreateOwnRoom');
-        div.innerHTML += `<p>you now in room #${room.id}</p>`;
-    });
-    
-    document.getElementById('join-room-button').addEventListener('click', async () => {
-        room = await connection.invoke('JoinRoom', 0);
-        div.innerHTML += `<p>you now in room #${room.id}</p>`;
-    });
-    
-    document.getElementById('start-game').addEventListener('click', async () => {
-        await connection.invoke('GameAction', "ticTacToeStart", "empty");
-    });
-</script>
+    /* Mobile adjustments */
+    @@media (max-width: 576px) {
+        .cell { font-size: 2rem; }
+    }
+</style>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+
+    <script>
+        // --- State Management ---
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/Gamehub")
+            .withAutomaticReconnect()
+            .build();
+        
+        let currentState = {
+            phase: 'Waiting',
+            board: [[0,0,0],[0,0,0],[0,0,0]],
+            isYourTurn: false,
+            yourSide: null,
+            opponentName: null
+        };
+
+        // --- DOM Elements ---
+        const views = {
+            auth: document.getElementById('authView'),
+            lobby: document.getElementById('lobbyView'),
+            game: document.getElementById('gameView')
+        };
+        const connectionStatus = document.getElementById('connectionStatus');
+        const toastEl = document.getElementById('liveToast');
+        const toast = new bootstrap.Toast(toastEl);
+
+        // --- Initialization ---
+        window.onload = () => {
+            showView('auth');
+            connectionStatus.classList.remove('d-none');
+        };
+
+        // --- SignalR Event Handlers ---
+        
+        connection.on("gameState", (state) => {
+            currentState = state;
+            renderGame(state);
+        });
+
+        connection.on("systemMessage", (msg) => {
+            showToast(msg);
+        });
+
+        connection.onreconnecting(() => {
+            connectionStatus.className = "alert alert-warning text-center";
+            connectionStatus.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Reconnecting...';
+        });
+
+        connection.onreconnected(() => {
+            connectionStatus.className = "alert alert-success text-center";
+            connectionStatus.innerHTML = '<i class="bi bi-wifi me-2"></i> Connected';
+            setTimeout(() => connectionStatus.classList.add('d-none'), 2000);
+        });
+
+        // --- Core Logic ---
+
+        async function connect() {
+            const nickname = document.getElementById('nicknameInput').value.trim();
+            if (!nickname) {
+                showToast("Please enter a nickname!");
+                return;
+            }
+
+            try {
+                await connection.start();
+                const success = await connection.invoke("TryToConnect", nickname);
+                
+                if (success) {
+                    connectionStatus.className = "alert alert-success text-center";
+                    connectionStatus.innerHTML = '<i class="bi bi-check-circle me-2"></i> Connected!';
+                    setTimeout(() => connectionStatus.classList.add('d-none'), 1000);
+                    
+                    showView('lobby');
+                    refreshRooms();
+                } else {
+                    showToast("Connection rejected by server.");
+                }
+            } catch (err) {
+                console.error(err);
+                showToast("Error connecting to server.");
+            }
+        }
+
+        async function refreshRooms() {
+            try {
+                const rooms = await connection.invoke("GetRooms");
+                const list = document.getElementById('roomList');
+                list.innerHTML = '';
+
+                if (rooms.length === 0) {
+                    list.innerHTML = '<div class="text-center text-muted py-4">No active rooms. Be the first!</div>';
+                    return;
+                }
+
+                rooms.forEach(room => {
+                    // Simple list item for rooms
+                    const item = document.createElement('div');
+                    item.className = 'list-group-item list-group-item-action d-flex justify-content-between align-items-center';
+                    item.innerHTML = `
+                        <div>
+                            <h6 class="mb-1">Room #${room.id}</h6>
+                            <small class="text-muted">${room.playerNames.length}/${room.capacity}</small>
+                        </div>
+                        <button class="btn btn-sm btn-primary" onclick="joinRoom(${room.id})">Join</button>
+                    `;
+                    list.appendChild(item);
+                });
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        async function createRoom() {
+            try {
+                const room = await connection.invoke("CreateOwnRoom");
+                if (room) {
+                    enterGameView();
+                    showToast("Room created! Waiting for opponent...");
+                }
+            } catch (e) {
+                showToast("Could not create room.");
+            }
+        }
+
+        async function joinRoom(roomId) {
+            try {
+                const room = await connection.invoke("JoinRoom", roomId);
+                if (room) {
+                    enterGameView();
+                    showToast("Joined room successfully!");
+                } else {
+                    showToast("Room is full or does not exist.");
+                }
+            } catch (e) {
+                showToast("Error joining room.");
+            }
+        }
+
+        async function leaveGame() {
+            try {
+                await connection.invoke("LeaveRoom");
+                showView('lobby');
+                refreshRooms();
+                // Reset UI
+                document.getElementById('gameOverlay').classList.add('d-none');
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        function startGame() {
+            connection.invoke("GameAction", "ticTacToeStart", "")
+                .catch(err => console.error(err));
+        }
+
+        function makeMove(index) {
+            if (!currentState.isYourTurn) return;
+            connection.invoke("GameAction", "ticTacToeMove", index.toString())
+                .catch(err => console.error(err));
+        }
+
+        // --- Rendering ---
+
+        function showView(viewName) {
+            Object.values(views).forEach(el => el.classList.add('d-none'));
+            views[viewName].classList.remove('d-none');
+        }
+
+        function enterGameView() {
+            showView('game');
+            // Initialize empty board
+            const boardEl = document.getElementById('gameBoard');
+            boardEl.innerHTML = '';
+            for (let i = 0; i < 9; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+                cell.dataset.index = i;
+                cell.onclick = () => makeMove(i);
+                boardEl.appendChild(cell);
+            }
+        }
+
+        function renderGame(state) {
+            // Update Header Info
+            document.getElementById('playerNameDisplay').innerText = "You"; // Ideally passed from connection start
+            document.getElementById('opponentNameDisplay').innerText = state.opponentName || "Waiting...";
+            
+            // Symbols
+            const mySymbol = state.yourSide === 'x' ? 'X' : (state.yourSide === 'o' ? 'O' : '?');
+            const oppSymbol = state.yourSide === 'x' ? 'O' : (state.yourSide === 'o' ? 'X' : '?');
+            
+            document.getElementById('playerSymbol').innerText = mySymbol;
+            document.getElementById('opponentSymbol').innerText = oppSymbol;
+
+            // Update Board
+            const cells = document.querySelectorAll('.cell');
+            state.board.forEach((row, rIndex) => {
+                row.forEach((val, cIndex) => {
+                    const index = rIndex * 3 + cIndex;
+                    const cell = cells[index];
+                    
+                    // Reset classes
+                    cell.className = 'cell';
+                    cell.innerText = '';
+                    
+                    if (val === 1) {
+                        cell.classList.add('x', 'taken');
+                        cell.dataset.mark = 'X';
+                    } else if (val === 2) {
+                        cell.classList.add('o', 'taken');
+                        cell.dataset.mark = 'O';
+                    }
+                });
+            });
+
+            // Status Logic
+            const statusBadge = document.getElementById('gameStatusBadge');
+            const turnIndicator = document.getElementById('turnIndicator');
+            const startBtn = document.getElementById('startBtn');
+            const overlay = document.getElementById('gameOverlay');
+
+            // Reset UI states
+            overlay.classList.add('d-none');
+            startBtn.classList.add('d-none');
+
+            if (state.phase === 'Waiting') {
+                statusBadge.className = 'badge bg-warning text-dark mb-1';
+                statusBadge.innerText = 'Waiting';
+                turnIndicator.innerText = state.opponentId ? 'Ready to start' : 'Waiting for opponent...';
+                
+                // Show start button if we have an opponent and we are the host (or just if we have opponent based on your logic)
+                // Assuming host can start, or anyone if logic allows. 
+                // UI Logic: Show start if opponent exists.
+                if (state.opponentId) {
+                    startBtn.classList.remove('d-none');
+                }
+            } 
+            else if (state.phase !== 'Waiting') {
+                statusBadge.className = 'badge bg-success mb-1';
+                statusBadge.innerText = 'Playing';
+                turnIndicator.innerText = state.isYourTurn ? "Your Turn!" : "Opponent's Turn";
+                
+                // Highlight active player
+                if (state.isYourTurn) {
+                    document.querySelector('.col-lg-8').classList.add('border-primary');
+                }
+            } 
+            else if (state.phase === 'ended') {
+                statusBadge.className = 'badge bg-secondary mb-1';
+                statusBadge.innerText = 'Game Over';
+                turnIndicator.innerText = '-';
+                
+                overlay.classList.remove('d-none');
+                const title = document.getElementById('overlayTitle');
+                
+                if (state.isDraw) {
+                    title.innerText = "It's a Draw!";
+                    title.className = "display-4 fw-bold text-white mb-3";
+                } else {
+                    title.innerText = `${state.winnerName} Wins!`;
+                    title.className = "display-4 fw-bold text-warning mb-3";
+                }
+            }
+        }
+
+        function showToast(message) {
+            document.getElementById('toastMessage').innerText = message;
+            toast.show();
+        }
+
+    </script>
+}

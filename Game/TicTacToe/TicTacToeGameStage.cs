@@ -1,6 +1,6 @@
 ﻿namespace ITask6.Game.TicTacToe;
 
-public enum TicTacToeGameState
+public enum TicTacToeGameStage
 {
     Waiting,
     XTurn,

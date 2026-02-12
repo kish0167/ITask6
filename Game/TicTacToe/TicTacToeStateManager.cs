@@ -2,23 +2,23 @@
 
 public class TicTacToeStateManager
 {
-    public TicTacToeGameState CurrentState { get; private set; } = TicTacToeGameState.Waiting;
-    private readonly Dictionary<TicTacToeGameState, int> _moveRepresentation = new()
+    public TicTacToeGameStage CurrentStage { get; private set; } = TicTacToeGameStage.Waiting;
+    private readonly Dictionary<TicTacToeGameStage, int> _moveRepresentation = new()
     {
-        { TicTacToeGameState.XTurn, 1 },
-        { TicTacToeGameState.OTurn, 2 }
+        { TicTacToeGameStage.XTurn, 1 },
+        { TicTacToeGameStage.OTurn, 2 }
     };
     
-    public bool IsWaiting => CurrentState == TicTacToeGameState.Waiting;
+    public bool IsWaiting => CurrentStage == TicTacToeGameStage.Waiting;
     
-    public int GetCurrentPlayerValue() => _moveRepresentation[CurrentState];
+    public int GetCurrentPlayerValue() => _moveRepresentation[CurrentStage];
     
-    public void StartGame() => CurrentState = TicTacToeGameState.XTurn;
+    public void StartGame() => CurrentStage = TicTacToeGameStage.XTurn;
     
     public void SwitchTurn() => 
-        CurrentState = CurrentState == TicTacToeGameState.XTurn 
-            ? TicTacToeGameState.OTurn 
-            : TicTacToeGameState.XTurn;
+        CurrentStage = CurrentStage == TicTacToeGameStage.XTurn 
+            ? TicTacToeGameStage.OTurn 
+            : TicTacToeGameStage.XTurn;
     
-    public void EndGame() => CurrentState = TicTacToeGameState.Waiting;
+    public void EndGame() => CurrentStage = TicTacToeGameStage.Waiting;
 }

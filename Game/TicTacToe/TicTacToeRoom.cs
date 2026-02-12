@@ -22,11 +22,40 @@ public class TicTacToeRoom(IHubContext<GameHub> hubContext) : Room(2, hubContext
                 break;
         }
     }
-    
+
+    protected override async Task OnPlayerAdded(string id)
+    {
+        await base.OnPlayerAdded(id);
+        if (!CanStart())
+        {
+            await BroadcastState();
+            return;
+        }
+        _playerManager.AssignSides(Players.ElementAt(0), Players.ElementAt(1));
+        _stateManager.StartGame();
+        await BroadcastState();
+    }
+
+    protected override async Task OnPlayerRemoved(string id)
+    {
+        await base.OnPlayerRemoved(id);
+        _stateManager.EndGame();
+        if (Players.Count() != 0)
+        {
+            await BroadcastState();
+            await SendSystemMessage(Players.ElementAt(0), "Your opponent left the room");
+        }
+        _board.Reset();
+    }
+
     private async Task HandleStartGame(string id)
     {
-        if (!CanStart()) return;
-        _playerManager.AssignSides(Players.Keys.ElementAt(0), Players.Keys.ElementAt(1));
+        if (!CanStart())
+        {
+            await SendSystemMessage(id, "Can't start game now");
+            return;
+        }
+        _playerManager.AssignSides(Players.ElementAt(0), Players.ElementAt(1));
         _stateManager.StartGame();
         await BroadcastState();
     }
@@ -36,11 +65,10 @@ public class TicTacToeRoom(IHubContext<GameHub> hubContext) : Room(2, hubContext
         if (!_moveValidator.IsValidMove(_board, id, action, _stateManager, _playerManager, out int row, out int col))
             return;
         _board.PlaceMove(row, col, _stateManager.GetCurrentPlayerValue());
-        
-        await HandleAfterMove();
+        await HandleNextGameState();
     }
 
-    private async Task HandleAfterMove()
+    private async Task HandleNextGameState()
     {
         if (_board.WinCondition())
         {
@@ -57,22 +85,38 @@ public class TicTacToeRoom(IHubContext<GameHub> hubContext) : Room(2, hubContext
         }
     }
 
+    private async Task EndGame(bool draw)
+    {
+        await BroadcastEndState(draw);
+        _stateManager.EndGame();
+        _board.Reset();
+    }
+    
+    private bool CanStart()
+    {
+        return PlayerNames.Count == 2 && _stateManager.IsWaiting;
+    }
+    
     private async Task BroadcastState()
     {
-        foreach (string id in Players.Keys)
+        foreach (string id in Players)
         {
             TicTacToeGameStateDto state = BuildDtoForPlayer(id);
             await SendDataToPlayer(id, "gameState", state);
-            await SendDataToPlayer(id, "message", "fuck you");
         }
+    }
+    
+    private async Task SendSystemMessage(string id, string message)
+    {
+        await SendDataToPlayer(id, "systemMessage", message);
     }
     
     private async Task BroadcastEndState(bool draw)
     {
-        string? winnerId = draw ? null : _playerManager.GetPlayerId(_stateManager.CurrentState);
-        string? winnerName = draw ? null : Players[_playerManager.GetWinnerId(_stateManager.CurrentState)];
+        string? winnerId = draw ? null : _playerManager.GetPlayerId(_stateManager.CurrentStage);
+        string? winnerName = draw ? null : PlayerNames[_playerManager.GetPlayerId(_stateManager.CurrentStage)];
         
-        foreach (string id in Players.Keys)
+        foreach (string id in Players)
         {
             TicTacToeGameStateDto state = BuildDtoForPlayer(id);
             state.WinnerId = winnerId;
@@ -85,31 +129,19 @@ public class TicTacToeRoom(IHubContext<GameHub> hubContext) : Room(2, hubContext
     
     private TicTacToeGameStateDto BuildDtoForPlayer(string id)
     {
-        string? opponentId = Players.Keys.FirstOrDefault(pid => pid != id);
+        string? opponentId = Players.FirstOrDefault(pid => pid != id);
         TicTacToeGameStateDto state = new()
         {
             Board = _board.Grid,
-            Phase = _stateManager.CurrentState.ToString(),
-            CurrentTurnName = _stateManager.CurrentState is TicTacToeGameState.XTurn or TicTacToeGameState.OTurn 
-                ?  Players[_playerManager.GetPlayerId(_stateManager.CurrentState)]
+            Phase = _stateManager.CurrentStage.ToString(),
+            CurrentTurnName = _stateManager.CurrentStage is TicTacToeGameStage.XTurn or TicTacToeGameStage.OTurn 
+                ?  PlayerNames[_playerManager.GetPlayerId(_stateManager.CurrentStage)]
                 : null,
             YourSide = _playerManager.GetPlayerSide(id),
             OpponentId = opponentId,
-            OpponentName = opponentId != null ? Players[opponentId] : null,
-            IsYourTurn = _playerManager.IsCurrentPlayerTurn(id, _stateManager.CurrentState)
+            OpponentName = opponentId != null ? PlayerNames[opponentId] : null,
+            IsYourTurn = _playerManager.IsCurrentPlayerTurn(id, _stateManager.CurrentStage)
         };
         return state;
-    }
-
-    private async Task EndGame(bool draw)
-    {
-        await BroadcastEndState(draw);
-        _stateManager.EndGame();
-        _board.Reset();
-    }
-
-    private bool CanStart()
-    {
-        return Players.Count == 2 && _stateManager.IsWaiting;
     }
 }

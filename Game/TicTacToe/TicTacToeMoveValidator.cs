@@ -7,7 +7,7 @@ public class TicTacToeMoveValidator
     {
         if (!TryParseMove(board, action, out row, out col)) return false;
         if (!board.IsCellEmpty(row, col)) return false;
-        if (!playerManager.IsCurrentPlayerTurn(playerId, stateManager.CurrentState)) return false;
+        if (!playerManager.IsCurrentPlayerTurn(playerId, stateManager.CurrentStage)) return false;
         
         return true;
     }

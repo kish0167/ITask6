@@ -4,35 +4,32 @@ namespace ITask6.Game.TicTacToe;
 
 public class TicTacToePlayerManager
 {
-    private readonly Dictionary<TicTacToeGameState, string> _playerSides = new();
+    private readonly Dictionary<TicTacToeGameStage, string> _playerSides = new();
     
     public void AssignSides(string player1, string player2)
     {
         bool xGoesFirst = RandomNumberGenerator.GetInt32(2) == 0;
         
-        _playerSides[TicTacToeGameState.XTurn] = xGoesFirst ? player1 : player2;
-        _playerSides[TicTacToeGameState.OTurn] = xGoesFirst ? player2 : player1;
+        _playerSides[TicTacToeGameStage.XTurn] = xGoesFirst ? player1 : player2;
+        _playerSides[TicTacToeGameStage.OTurn] = xGoesFirst ? player2 : player1;
     }
-    
-    public string GetPlayerId(TicTacToeGameState state) => _playerSides[state];
 
-    public bool IsCurrentPlayerTurn(string playerId, TicTacToeGameState currentState)
+    public string GetPlayerId(TicTacToeGameStage stage)
     {
-        return _playerSides.TryGetValue(currentState, out var id) && id == playerId;
+        return _playerSides[stage];
+    } 
+
+    public bool IsCurrentPlayerTurn(string playerId, TicTacToeGameStage currentStage)
+    {
+        return _playerSides.TryGetValue(currentStage, out var id) && id == playerId;
     }
 
     public string? GetPlayerSide(string id)
     {
-        if (_playerSides.TryGetValue(TicTacToeGameState.XTurn, out var xId) && xId == id)
+        if (_playerSides.TryGetValue(TicTacToeGameStage.XTurn, out var xId) && xId == id)
             return "x";
-        if (_playerSides.TryGetValue(TicTacToeGameState.OTurn, out var oId) && oId == id)
+        if (_playerSides.TryGetValue(TicTacToeGameStage.OTurn, out var oId) && oId == id)
             return "o";
         return null;
-    }
-
-
-    public string GetWinnerId(TicTacToeGameState lastTurnState)
-    {
-        return _playerSides[lastTurnState];
     }
 }
