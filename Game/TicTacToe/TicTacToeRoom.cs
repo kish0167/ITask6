@@ -3,12 +3,19 @@ using Microsoft.AspNetCore.SignalR;
 
 namespace ITask6.Game.TicTacToe;
 
-public class TicTacToeRoom(IHubContext<GameHub> hubContext) : Room(2, hubContext)
+public class TicTacToeRoom : Room
 {
-    private readonly TicTacToeGameBoard _board = new(5);
+    private readonly TicTacToeGameBoard _board;
     private readonly TicTacToeStateManager _stateManager = new();
     private readonly TicTacToePlayerManager _playerManager = new();
     private readonly TicTacToeMoveValidator _moveValidator = new();
+
+    public TicTacToeRoom(string name, int dimension, IHubContext<GameHub> hubContext) : base(2, name, hubContext)
+    {
+        _board = new(dimension);
+        RoomInfo = $"board: {dimension}x{dimension}";
+    }
+
     protected override async Task OnPlayerAction(string id, string type, string action)
     {
         await base.OnPlayerAction(id, type, action);
@@ -32,7 +39,7 @@ public class TicTacToeRoom(IHubContext<GameHub> hubContext) : Room(2, hubContext
     protected override async Task OnPlayerRemoved(string id)
     {
         await base.OnPlayerRemoved(id);
-        _stateManager.EndGame();
+        _stateManager.Reset();
         if (Players.Count() != 0 && _stateManager.CurrentStage != TicTacToeGameStage.Ended)
         {
             await BroadcastState();
@@ -88,7 +95,7 @@ public class TicTacToeRoom(IHubContext<GameHub> hubContext) : Room(2, hubContext
     
     private bool CanStart()
     {
-        return PlayerNames.Count == 2 && _stateManager.IsWaiting;
+        return PlayerNames.Count == 2 && (_stateManager.IsWaitingOrEnded());
     }
     
     private async Task BroadcastState()

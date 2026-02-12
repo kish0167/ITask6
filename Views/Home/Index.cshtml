@@ -69,9 +69,25 @@
             <!-- Actions -->
             <div class="col-md-4">
                 <div class="card shadow border-0 bg-primary text-white">
-                    <div class="card-body text-center p-5">
+                    <div class="card-body text-center p-4">
                         <h4 class="mb-3">Start New Game</h4>
                         <p class="opacity-75 mb-4">Create a public room and wait for an opponent.</p>
+                        
+                        <!-- Room Name Input -->
+                        <div class="form-floating mb-3 text-dark">
+                            <input type="text" class="form-control" id="roomNameInput" placeholder="My Room" maxlength="20">
+                            <label for="roomNameInput">Room Name</label>
+                        </div>
+                        
+                        <!-- Board Size Stepper -->
+                        <div class="mb-4 text-start bg-white bg-opacity-10 rounded p-3">
+                            <label for="boardSizeStepper" class="form-label d-flex justify-content-between mb-2">
+                                <span>Board Size</span>
+                                <span class="fw-bold" id="boardSizeValue">3×3</span>
+                            </label>
+                            <input type="range" class="form-range" id="boardSizeStepper" min="3" max="10" value="3" step="1" oninput="updateBoardSizeLabel(this.value)">
+                        </div>
+                        
                         <button class="btn btn-light btn-lg w-100 text-primary fw-bold" onclick="createRoom()">
                             <i class="bi bi-plus-circle me-2"></i>Create Room
                         </button>
@@ -124,6 +140,9 @@
                     <div id="gameOverlay" class="game-overlay d-none">
                         <div class="text-center">
                             <h2 id="overlayTitle" class="display-4 fw-bold text-white mb-3">Winner!</h2>
+                            <button class="btn btn-light btn-lg rounded-pill px-5" onclick="startGame()">
+                                Play again
+                            </button>
                             <button class="btn btn-light btn-lg rounded-pill px-5" onclick="leaveGame()">
                                 Back to Lobby
                             </button>
@@ -146,16 +165,10 @@
 </div>
 
 <style>
-    /* Animations */
     @@keyframes popIn {
         0% { transform: scale(0); opacity: 0; }
         80% { transform: scale(1.1); opacity: 1; }
         100% { transform: scale(1); }
-    }
-
-    /* Mobile adjustments */
-    @@media (max-width: 576px) {
-        .cell { font-size: 2rem; }
     }
 </style>
 
@@ -188,12 +201,18 @@
         const connectionStatus = document.getElementById('connectionStatus');
         const toastEl = document.getElementById('liveToast');
         const toast = new bootstrap.Toast(toastEl);
+        const roomNameInput = document.getElementById('roomNameInput');
+        const boardSizeStepper = document.getElementById('boardSizeStepper');
 
         // --- Initialization ---
         window.onload = () => {
             showView('auth');
             connectionStatus.classList.remove('d-none');
         };
+        
+        function updateBoardSizeLabel(val) {
+            document.getElementById('boardSizeValue').innerText = `${val}×${val}`;
+        }
 
         // --- SignalR Event Handlers ---
         
@@ -263,8 +282,9 @@
                     item.className = 'list-group-item list-group-item-action d-flex justify-content-between align-items-center';
                     item.innerHTML = `
                         <div>
-                            <h6 class="mb-1">Room #${room.id}</h6>
-                            <small class="text-muted">${room.players.length}/${room.capacity}</small>
+                            <h6 class="mb-1">${room.name}</h6>
+                            <small class="text-muted"><i class="bi bi-people"></i>${room.players.length}/${room.capacity}</small>
+                            <small class="text-muted m-2">${room.info}</small>
                         </div>
                         <button class="btn btn-sm btn-primary" onclick="joinRoom(${room.id})">Join</button>
                     `;
@@ -277,7 +297,7 @@
 
         async function createRoom() {
             try {
-                const room = await connection.invoke("CreateOwnRoom");
+                const room = await connection.invoke("CreateOwnRoom", roomNameInput.value, parseInt(boardSizeStepper.value));
                 if (room) {
                     enterGameView();
                     showToast("Room created! Waiting for opponent...");

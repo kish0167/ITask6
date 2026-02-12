@@ -9,6 +9,7 @@ public class MatchMakingService : IMatchMakingService
     private readonly Dictionary<string,string> _players = new();
     private readonly List<Room> _rooms = new();
     private const bool DestroyEmptyRooms = true;
+    private const int DefaultRoomCapacity = 4;
     
     public bool TryToAddPlayer(string id, string nickname)
     {
@@ -50,10 +51,10 @@ public class MatchMakingService : IMatchMakingService
         }
     }
 
-    public async Task<Room?> CreateRoomAndJoin(string id, IHubContext<GameHub> hubContext)
+    public async Task<Room?> CreateTicTacToeRoomAndJoin(string id, string roomName, int dimension, IHubContext<GameHub> hubContext)
     {
         if (!PlayerIsAbleToJoinRoom(id)) return null;
-        return await JoinRoom(id, CreateRoom(hubContext));
+        return await JoinRoom(id, CreateTicTacToeRoom(roomName, dimension, hubContext));
     }
 
     private bool PlayerHasNickname(string id)
@@ -61,9 +62,9 @@ public class MatchMakingService : IMatchMakingService
         return _players.ContainsKey(id);
     }
     
-    private int CreateRoom(IHubContext<GameHub> hubContext)
+    private int CreateTicTacToeRoom(string name, int dimension, IHubContext<GameHub> hubContext)
     {
-        Room room = new TicTacToeRoom(hubContext);
+        Room room = new TicTacToeRoom(name, dimension, hubContext);
         _rooms.Add(room);
         return room.Id;
     }

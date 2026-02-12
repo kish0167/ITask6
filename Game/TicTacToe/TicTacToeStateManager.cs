@@ -9,16 +9,35 @@ public class TicTacToeStateManager
         { TicTacToeGameStage.OTurn, 2 }
     };
     
-    public bool IsWaiting => CurrentStage == TicTacToeGameStage.Waiting;
+    public int GetCurrentPlayerValue()
+    {
+        return _moveRepresentation[CurrentStage];
+    }
     
-    public int GetCurrentPlayerValue() => _moveRepresentation[CurrentStage];
+    public void StartGame()
+    {
+        CurrentStage = TicTacToeGameStage.XTurn;
+    }
+
+    public void Reset()
+    {
+        CurrentStage = TicTacToeGameStage.Waiting;
+    }
     
-    public void StartGame() => CurrentStage = TicTacToeGameStage.XTurn;
-    
-    public void SwitchTurn() => 
+    public void SwitchTurn()
+    {
         CurrentStage = CurrentStage == TicTacToeGameStage.XTurn 
             ? TicTacToeGameStage.OTurn 
             : TicTacToeGameStage.XTurn;
+    }
     
-    public void EndGame() => CurrentStage = TicTacToeGameStage.Ended;
+    public void EndGame()
+    {
+        CurrentStage = TicTacToeGameStage.Ended;
+    }
+
+    public bool IsWaitingOrEnded()
+    {
+        return CurrentStage == TicTacToeGameStage.Waiting || CurrentStage == TicTacToeGameStage.Ended;
+    }
 }

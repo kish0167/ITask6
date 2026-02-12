@@ -32,9 +32,9 @@ public class GameHub : Hub
         return _matchMakingService.GetRooms();
     }
 
-    public async Task<Room?> CreateOwnRoom()
+    public async Task<Room?> CreateOwnRoom(string roomName, int dimension)
     {
-        return await _matchMakingService.CreateRoomAndJoin(Context.ConnectionId, _hubContext);
+        return await _matchMakingService.CreateTicTacToeRoomAndJoin(Context.ConnectionId, roomName, dimension, _hubContext);
     }
 
     public async Task<Room?> JoinRoom(int roomId)

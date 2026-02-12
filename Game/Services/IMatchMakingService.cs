@@ -7,7 +7,7 @@ public interface IMatchMakingService
 {
     public bool TryToAddPlayer(string id, string nickname);
     public Task RemovePlayer(string id);
-    public Task<Room?> CreateRoomAndJoin(string id, IHubContext<GameHub> hubContext);
+    public Task<Room?> CreateTicTacToeRoomAndJoin(string id, string roomName, int dimension, IHubContext<GameHub> hubContext);
     public List<Room> GetRooms();
     public Task<Room?> JoinRoom(string id, int roomId);
     public Task RemovePlayerFromRoom(string id);

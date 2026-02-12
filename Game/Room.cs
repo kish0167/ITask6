@@ -4,10 +4,13 @@ using Microsoft.AspNetCore.SignalR;
 
 namespace ITask6.Game;
 
-public class Room(int capacity, IHubContext<GameHub> hubContext)
+public class Room(int capacity, string name, IHubContext<GameHub> hubContext)
 {
     [JsonPropertyName("id")]
     public int Id { get; } = _nextId++;
+
+    [JsonPropertyName("name")] 
+    public string Name { get; } = name;
     
     [JsonPropertyName("playerNames")]
     public Dictionary<string, string> PlayerNames { get; } = new();
@@ -17,6 +20,9 @@ public class Room(int capacity, IHubContext<GameHub> hubContext)
     
     [JsonPropertyName("capacity")]
     public int Capacity { get; } = capacity;
+
+    [JsonPropertyName("info")]
+    public string RoomInfo { get; protected set; } = "";
     
     [JsonPropertyName("isAvailable")]
     public bool IsAvailable => PlayerNames.Count < Capacity;
