@@ -12,6 +12,8 @@ public class TicTacToeGameStateDto
     public string Phase { get; set; } = "waiting";
     [JsonProperty("currentTurnName")]
     public string? CurrentTurnName { get; set; }
+    [JsonProperty("yourName")]
+    public string? YourName { get; set; }
     [JsonProperty("yourSide")]
     public string? YourSide { get; set; }
     [JsonProperty("opponentId")]

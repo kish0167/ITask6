@@ -291,10 +291,7 @@
                 }
 
                 rooms.forEach(room => {
-                    // Simple list item for rooms
                     const item = document.createElement('div');
-                    
-                    // Add opacity class if room is not available
                     const opacityClass = room.isAvailable ? '' : 'opacity-50';
                     const buttonDisabled = room.isAvailable ? '' : 'disabled';
                     const buttonText = room.isAvailable ? 'Join' : 'Full';
@@ -346,7 +343,6 @@
                 await connection.invoke("LeaveRoom");
                 showView('lobby');
                 refreshRooms();
-                // Reset UI
                 document.getElementById('gameOverlay').classList.add('d-none');
             } catch (e) {
                 console.error(e);
@@ -398,7 +394,7 @@
             enterGameView(state.dimension);
             
             // Update Header Info
-            document.getElementById('playerNameDisplay').innerText = "You"; // Ideally passed from connection start
+            document.getElementById('playerNameDisplay').innerText = state.yourName;
             document.getElementById('opponentNameDisplay').innerText = state.opponentName || "Waiting...";
             
             // Symbols

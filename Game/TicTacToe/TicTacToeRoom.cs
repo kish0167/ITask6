@@ -45,7 +45,7 @@ public class TicTacToeRoom : Room
         if (Players.Count() != 0 && _stateManager.CurrentStage != TicTacToeGameStage.Ended)
         {
             await BroadcastState();
-            await SendSystemMessage(Players.ElementAt(0), "Your opponent left the room");
+            await SendSystemMessage(Players.ElementAt(0), "Your opponent has left the room");
         }
         _board.Reset();
     }
@@ -145,6 +145,7 @@ public class TicTacToeRoom : Room
             CurrentTurnName = _stateManager.CurrentStage is TicTacToeGameStage.XTurn or TicTacToeGameStage.OTurn 
                 ?  PlayerNames[_playerManager.GetPlayerId(_stateManager.CurrentStage)]
                 : null,
+            YourName = PlayerNames[id],
             YourSide = _playerManager.GetPlayerSide(id),
             OpponentId = opponentId,
             OpponentName = opponentId != null ? PlayerNames[opponentId] : null,
