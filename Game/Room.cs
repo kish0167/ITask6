@@ -12,13 +12,15 @@ public class Room(int capacity, IHubContext<GameHub> hubContext)
     [JsonPropertyName("playerNames")]
     public Dictionary<string, string> PlayerNames { get; } = new();
     
+    [JsonPropertyName("players")]
+    public IEnumerable<string> Players => PlayerNames.Keys;
+    
     [JsonPropertyName("capacity")]
     public int Capacity { get; } = capacity;
     
     [JsonPropertyName("isAvailable")]
     public bool IsAvailable => PlayerNames.Count < Capacity;
-
-    protected IEnumerable<string> Players => PlayerNames.Keys;
+    
     
     private static int _nextId = 0;
 

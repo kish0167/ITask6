@@ -6,12 +6,12 @@
     <!-- Header -->
     <div class="text-center mb-4">
         <h1 class="display-5 fw-bold text-primary">Tic Tac Toe Arena</h1>
-        <p class="text-muted">Real-time multiplayer battles</p>
+        <p class="text-muted">Real-time multiplayer</p>
     </div>
 
     <!-- Connection Status -->
     <div id="connectionStatus" class="alert alert-info text-center">
-        <span class="spinner-border spinner-border-sm me-2"></span> Connecting to server...
+        <span class="spinner-border spinner-border-sm me-2"></span> Waiting for yor nickname...
     </div>
 
     <!-- Toast Notification Container -->
@@ -32,7 +32,7 @@
         <div class="col-md-6 col-lg-4">
             <div class="card shadow-lg border-0">
                 <div class="card-body p-5">
-                    <h3 class="card-title text-center mb-4">Enter Battlefield</h3>
+                    <h3 class="card-title text-center mb-4">Enter Arena</h3>
                     <div class="form-floating mb-3">
                         <input type="text" class="form-control" id="nicknameInput" placeholder="PlayerOne" maxlength="15">
                         <label for="nicknameInput">Your Nickname</label>
@@ -71,7 +71,7 @@
                 <div class="card shadow border-0 bg-primary text-white">
                     <div class="card-body text-center p-5">
                         <h4 class="mb-3">Start New Game</h4>
-                        <p class="opacity-75 mb-4">Create a private room and wait for an opponent.</p>
+                        <p class="opacity-75 mb-4">Create a public room and wait for an opponent.</p>
                         <button class="btn btn-light btn-lg w-100 text-primary fw-bold" onclick="createRoom()">
                             <i class="bi bi-plus-circle me-2"></i>Create Room
                         </button>
@@ -146,62 +146,6 @@
 </div>
 
 <style>
-    :root {
-        --cell-size: 100px;
-        --mark-size: calc(var(--cell-size) * .7);
-    }
-
-    body {
-        background-color: #f8f9fa;
-        background-image: radial-gradient(#e9ecef 1px, transparent 1px);
-        background-size: 20px 20px;
-    }
-
-    .game-board {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 10px;
-        background-color: #dee2e6;
-        padding: 10px;
-        border-radius: 1rem;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-        max-width: 500px;
-        margin: 0 auto;
-        aspect-ratio: 1;
-    }
-
-    .cell {
-        background-color: white;
-        border-radius: 0.5rem;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        font-size: 3rem;
-        font-weight: bold;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        color: #495057;
-        position: relative;
-        overflow: hidden;
-    }
-
-    .cell:hover:not(.taken) {
-        background-color: #e9ecef;
-        transform: scale(0.98);
-    }
-
-    .cell.taken {
-        cursor: default;
-    }
-
-    .cell.x {
-        color: #0d6efd; /* Bootstrap Primary */
-    }
-
-    .cell.o {
-        color: #dc3545; /* Bootstrap Danger */
-    }
-
     /* Animations */
     @@keyframes popIn {
         0% { transform: scale(0); opacity: 0; }
@@ -209,31 +153,6 @@
         100% { transform: scale(1); }
     }
 
-    .cell.x::after, .cell.o::after {
-        content: attr(data-mark);
-        animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    }
-
-    .game-overlay {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0,0,0,0.7);
-        backdrop-filter: blur(4px);
-        border-radius: 1rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 10;
-    }
-
-    .turn-active {
-        box-shadow: 0 0 15px rgba(13, 202, 240, 0.5);
-        border: 2px solid #0dcaf0;
-    }
-    
     /* Mobile adjustments */
     @@media (max-width: 576px) {
         .cell { font-size: 2rem; }
@@ -345,7 +264,7 @@
                     item.innerHTML = `
                         <div>
                             <h6 class="mb-1">Room #${room.id}</h6>
-                            <small class="text-muted">${room.playerNames.length}/${room.capacity}</small>
+                            <small class="text-muted">${room.players.length}/${room.capacity}</small>
                         </div>
                         <button class="btn btn-sm btn-primary" onclick="joinRoom(${room.id})">Join</button>
                     `;
@@ -411,22 +330,31 @@
             views[viewName].classList.remove('d-none');
         }
 
-        function enterGameView() {
+        function enterGameView(dimension) {
+            const board = document.getElementById('gameBoard');
+            updateBoardDimensions(dimension, board)
             showView('game');
-            // Initialize empty board
-            const boardEl = document.getElementById('gameBoard');
-            boardEl.innerHTML = '';
-            for (let i = 0; i < 9; i++) {
+            board.innerHTML = '';
+            for (let i = 0; i < dimension * dimension; i++) {
                 const cell = document.createElement('div');
                 cell.className = 'cell';
                 cell.dataset.index = i;
                 cell.onclick = () => makeMove(i);
-                boardEl.appendChild(cell);
+                board.appendChild(cell);
             }
+        }
+        
+        function updateBoardDimensions(boardSize, board) {
+            board.style.gridTemplateColumns = `repeat(${boardSize}, 1fr)`;
+            const fontSize = Math.max(1.2, 3.5 - (boardSize * 0.4));
+            board.style.fontSize = `${fontSize}rem`;
+            const gap = boardSize > 5 ? '5px' : '10px';
+            board.style.gap = gap;
+            board.style.padding = gap;
         }
 
         function renderGame(state) {
-            enterGameView();
+            enterGameView(state.dimension);
             
             // Update Header Info
             document.getElementById('playerNameDisplay').innerText = "You"; // Ideally passed from connection start
@@ -443,7 +371,7 @@
             const cells = document.querySelectorAll('.cell');
             state.board.forEach((row, rIndex) => {
                 row.forEach((val, cIndex) => {
-                    const index = rIndex * 3 + cIndex;
+                    const index = rIndex * state.dimension + cIndex;
                     const cell = cells[index];
                     
                     // Reset classes

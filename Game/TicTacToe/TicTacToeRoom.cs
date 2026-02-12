@@ -5,7 +5,7 @@ namespace ITask6.Game.TicTacToe;
 
 public class TicTacToeRoom(IHubContext<GameHub> hubContext) : Room(2, hubContext)
 {
-    private readonly TicTacToeGameBoard _board = new(3);
+    private readonly TicTacToeGameBoard _board = new(5);
     private readonly TicTacToeStateManager _stateManager = new();
     private readonly TicTacToePlayerManager _playerManager = new();
     private readonly TicTacToeMoveValidator _moveValidator = new();
@@ -125,6 +125,7 @@ public class TicTacToeRoom(IHubContext<GameHub> hubContext) : Room(2, hubContext
         TicTacToeGameStateDto state = new()
         {
             Board = _board.Grid,
+            Dimension = _board.Dimension,
             Phase = _stateManager.CurrentStage.ToString(),
             CurrentTurnName = _stateManager.CurrentStage is TicTacToeGameStage.XTurn or TicTacToeGameStage.OTurn 
                 ?  PlayerNames[_playerManager.GetPlayerId(_stateManager.CurrentStage)]

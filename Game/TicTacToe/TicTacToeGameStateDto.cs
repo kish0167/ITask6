@@ -6,6 +6,8 @@ public class TicTacToeGameStateDto
 {
     [JsonProperty("board")]
     public int[][] Board { get; set; } = [];
+    [JsonProperty("dimension")]
+    public int Dimension { get; set; }
     [JsonProperty("phase")]
     public string Phase { get; set; } = "waiting";
     [JsonProperty("currentTurnName")]
