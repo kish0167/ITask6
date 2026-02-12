@@ -98,7 +98,7 @@ public class TicTacToeRoom : Room
 
     private async Task AddScore(string winnerId)
     {
-        await ScoreManager.AddScoreAsync(PlayerNames[winnerId], _board.Dimension);
+        await ScoreManager.AddScoreAsync(PlayerNames[winnerId], _board.Dimension * _board.Dimension);
     }
 
     private bool CanStart()

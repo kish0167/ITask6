@@ -20,11 +20,11 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-using (var scope = app.Services.CreateScope())
+/*using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<LeaderboardContext>();
     db.Database.Migrate();
-}
+}*/
 
 ScoreManager.Initialize(app.Services);
 app.UseHttpsRedirection();

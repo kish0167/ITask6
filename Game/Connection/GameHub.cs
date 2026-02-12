@@ -16,6 +16,7 @@ public class GameHub : Hub
 
     public async Task<bool> TryToConnect(string nickname)
     {
+        await Task.CompletedTask;
         bool isSuccessful = _matchMakingService.TryToAddPlayer(Context.ConnectionId, nickname);
         return isSuccessful;
     }
