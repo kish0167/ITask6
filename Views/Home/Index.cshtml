@@ -140,10 +140,10 @@
                     <div id="gameOverlay" class="game-overlay d-none">
                         <div class="text-center">
                             <h2 id="overlayTitle" class="display-4 fw-bold text-white mb-3">Winner!</h2>
-                            <button class="btn btn-light btn-lg rounded-pill px-5" onclick="startGame()">
+                            <button class="btn btn-primary btn-lg rounded-pill px-5 fw-bold shadow-sm" onclick="startGame()">
                                 Play again
                             </button>
-                            <button class="btn btn-light btn-lg rounded-pill px-5" onclick="leaveGame()">
+                            <button class="btn btn-outline-secondary btn-lg rounded-pill px-5" onclick="leaveGame()">
                                 Back to Lobby
                             </button>
                         </div>
@@ -257,7 +257,7 @@
                     showView('lobby');
                     refreshRooms();
                 } else {
-                    showToast("Connection rejected by server.");
+                    showToast("Player with this nickname already playing");
                 }
             } catch (err) {
                 console.error(err);

@@ -14,6 +14,7 @@ public class TicTacToeRoom : Room
     {
         _board = new(dimension);
         RoomInfo = $"board: {dimension}x{dimension}";
+        if (dimension > 4) RoomInfo += " - 4 in a row to win";
     }
 
     protected override async Task OnPlayerAction(string id, string type, string action)

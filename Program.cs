@@ -1,11 +1,12 @@
 using ITask6.Game.Connection;
-using ITask6.Game.Services;
+using ITask6.Game.MatchMaking;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddSignalR();
-builder.Services.AddSingleton<IMatchMakingService, MatchMakingService>();
+//builder.Services.AddSingleton<IMatchMakingService, MatchMakingService>();
+builder.Services.AddSingleton<MatchMakingService>();
 
 var app = builder.Build();
 if (!app.Environment.IsDevelopment())

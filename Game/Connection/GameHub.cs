@@ -1,14 +1,14 @@
-﻿using ITask6.Game.Services;
+﻿using ITask6.Game.MatchMaking;
 using Microsoft.AspNetCore.SignalR;
 
 namespace ITask6.Game.Connection;
 
 public class GameHub : Hub
 {
-    private IMatchMakingService _matchMakingService;
+    private MatchMakingService _matchMakingService;
     private readonly IHubContext<GameHub> _hubContext;
 
-    public GameHub(IMatchMakingService matchMakingService, IHubContext<GameHub> hubContext)
+    public GameHub(MatchMakingService matchMakingService, IHubContext<GameHub> hubContext)
     {
         _matchMakingService = matchMakingService;
         _hubContext = hubContext;
@@ -17,7 +17,6 @@ public class GameHub : Hub
     public async Task<bool> TryToConnect(string nickname)
     {
         bool isSuccessful = _matchMakingService.TryToAddPlayer(Context.ConnectionId, nickname);
-        await _hubContext.Clients.Client(Context.ConnectionId).SendAsync("message", "ur gay");
         return isSuccessful;
     }
 
@@ -34,6 +33,12 @@ public class GameHub : Hub
 
     public async Task<Room?> CreateOwnRoom(string roomName, int dimension)
     {
+        if (_matchMakingService.HasRoomWithName(roomName))
+        {
+            await Clients.Client(Context.ConnectionId).SendAsync("systemMessage", 
+                "Room with this name already exists");
+            return null;
+        }
         return await _matchMakingService.CreateTicTacToeRoomAndJoin(Context.ConnectionId, roomName, dimension, _hubContext);
     }
 
@@ -50,10 +55,5 @@ public class GameHub : Hub
     public async Task GameAction(string type, string data)
     {
         await _matchMakingService.PlayerAction(Context.ConnectionId, type, data);
-    }
-
-    public async Task SendMessage(string message)
-    {
-        await Clients.All.SendAsync("message", Context.ConnectionId, message);
     }
 }
