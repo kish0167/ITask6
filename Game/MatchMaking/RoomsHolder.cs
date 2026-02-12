@@ -9,7 +9,7 @@ public class RoomsHolder
 
     public bool HasRoomWithName(string roomName)
     {
-        return _rooms.Select(r => r.Name == roomName).Any();
+        return _rooms.Any(r => r.Name == roomName);
     }
 
     public async Task RemovePlayerFromRoom(string id)

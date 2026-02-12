@@ -1,4 +1,5 @@
 ﻿using ITask6.Game.Connection;
+using ITask6.Game.Score;
 using Microsoft.AspNetCore.SignalR;
 
 namespace ITask6.Game.TicTacToe;
@@ -89,11 +90,17 @@ public class TicTacToeRoom : Room
     private async Task EndGame(bool draw)
     {
         string winnerId = _playerManager.GetPlayerId(_stateManager.CurrentStage);
+        if(!draw) await AddScore(winnerId);
         _stateManager.EndGame();
         await BroadcastEndState(draw, winnerId);
         _board.Reset();
     }
-    
+
+    private async Task AddScore(string winnerId)
+    {
+        await ScoreManager.AddScoreAsync(PlayerNames[winnerId], _board.Dimension);
+    }
+
     private bool CanStart()
     {
         return PlayerNames.Count == 2 && (_stateManager.IsWaitingOrEnded());

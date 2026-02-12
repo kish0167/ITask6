@@ -1,0 +1,44 @@
+﻿@model List<ITask6.Models.LeaderboardViewModel>
+
+@{
+    ViewBag.Title = "Leaderboard";
+}
+
+<div class="leaderboard-container">
+    <h1>🏆 Top Players</h1>
+    
+    @if (!Model.Any())
+    {
+        <p class="empty">No scores yet. Be the first!</p>
+    }
+    else
+    {
+        <table class="leaderboard-table">
+            <thead>
+                <tr>
+                    <th>Rank</th>
+                    <th>Player</th>
+                    <th>Score</th>
+                    <th>Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var entry in Model)
+                {
+                    <tr class="@(entry.Rank <= 3 ? "top-" + entry.Rank : "")">
+                        <td class="rank">
+                            @if (entry.Rank == 1) { <span>🥇</span> }
+                            else if (entry.Rank == 2) { <span>🥈</span> }
+                            else if (entry.Rank == 3) { <span>🥉</span> }
+                            else { <span>#@entry.Rank</span> }
+                        </td>
+                        <td class="nickname">@entry.Nickname</td>
+                        <td class="score">@entry.Score.ToString("N0")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    
+    <a href="/" class="btn-back">← Back to Game</a>
+</div>
