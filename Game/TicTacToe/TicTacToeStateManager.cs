@@ -20,5 +20,5 @@ public class TicTacToeStateManager
             ? TicTacToeGameStage.OTurn 
             : TicTacToeGameStage.XTurn;
     
-    public void EndGame() => CurrentStage = TicTacToeGameStage.Waiting;
+    public void EndGame() => CurrentStage = TicTacToeGameStage.Ended;
 }

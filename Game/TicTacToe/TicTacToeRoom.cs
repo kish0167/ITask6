@@ -26,13 +26,6 @@ public class TicTacToeRoom(IHubContext<GameHub> hubContext) : Room(2, hubContext
     protected override async Task OnPlayerAdded(string id)
     {
         await base.OnPlayerAdded(id);
-        if (!CanStart())
-        {
-            await BroadcastState();
-            return;
-        }
-        _playerManager.AssignSides(Players.ElementAt(0), Players.ElementAt(1));
-        _stateManager.StartGame();
         await BroadcastState();
     }
 
@@ -40,7 +33,7 @@ public class TicTacToeRoom(IHubContext<GameHub> hubContext) : Room(2, hubContext
     {
         await base.OnPlayerRemoved(id);
         _stateManager.EndGame();
-        if (Players.Count() != 0)
+        if (Players.Count() != 0 && _stateManager.CurrentStage != TicTacToeGameStage.Ended)
         {
             await BroadcastState();
             await SendSystemMessage(Players.ElementAt(0), "Your opponent left the room");
@@ -87,8 +80,9 @@ public class TicTacToeRoom(IHubContext<GameHub> hubContext) : Room(2, hubContext
 
     private async Task EndGame(bool draw)
     {
-        await BroadcastEndState(draw);
+        string winnerId = _playerManager.GetPlayerId(_stateManager.CurrentStage);
         _stateManager.EndGame();
+        await BroadcastEndState(draw, winnerId);
         _board.Reset();
     }
     
@@ -111,18 +105,16 @@ public class TicTacToeRoom(IHubContext<GameHub> hubContext) : Room(2, hubContext
         await SendDataToPlayer(id, "systemMessage", message);
     }
     
-    private async Task BroadcastEndState(bool draw)
+    private async Task BroadcastEndState(bool draw, string winnerId)
     {
-        string? winnerId = draw ? null : _playerManager.GetPlayerId(_stateManager.CurrentStage);
-        string? winnerName = draw ? null : PlayerNames[_playerManager.GetPlayerId(_stateManager.CurrentStage)];
+        string? winnerName = draw ? null : PlayerNames[winnerId];
         
         foreach (string id in Players)
         {
             TicTacToeGameStateDto state = BuildDtoForPlayer(id);
-            state.WinnerId = winnerId;
+            state.WinnerId = draw ? null : winnerId;
             state.WinnerName = winnerName;
             state.IsDraw = draw;
-            state.Phase = "finished";
             await SendDataToPlayer(id, "gameState", state);
         }
     }

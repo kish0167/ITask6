@@ -372,7 +372,6 @@
             try {
                 const room = await connection.invoke("JoinRoom", roomId);
                 if (room) {
-                    enterGameView();
                     showToast("Joined room successfully!");
                 } else {
                     showToast("Room is full or does not exist.");
@@ -427,6 +426,8 @@
         }
 
         function renderGame(state) {
+            enterGameView();
+            
             // Update Header Info
             document.getElementById('playerNameDisplay').innerText = "You"; // Ideally passed from connection start
             document.getElementById('opponentNameDisplay').innerText = state.opponentName || "Waiting...";
@@ -474,14 +475,11 @@
                 statusBadge.innerText = 'Waiting';
                 turnIndicator.innerText = state.opponentId ? 'Ready to start' : 'Waiting for opponent...';
                 
-                // Show start button if we have an opponent and we are the host (or just if we have opponent based on your logic)
-                // Assuming host can start, or anyone if logic allows. 
-                // UI Logic: Show start if opponent exists.
                 if (state.opponentId) {
                     startBtn.classList.remove('d-none');
                 }
             } 
-            else if (state.phase !== 'Waiting') {
+            else if (state.phase !== 'Waiting' && state.phase !== 'Ended') {
                 statusBadge.className = 'badge bg-success mb-1';
                 statusBadge.innerText = 'Playing';
                 turnIndicator.innerText = state.isYourTurn ? "Your Turn!" : "Opponent's Turn";
@@ -491,7 +489,7 @@
                     document.querySelector('.col-lg-8').classList.add('border-primary');
                 }
             } 
-            else if (state.phase === 'ended') {
+            else if (state.phase === 'Ended') {
                 statusBadge.className = 'badge bg-secondary mb-1';
                 statusBadge.innerText = 'Game Over';
                 turnIndicator.innerText = '-';
